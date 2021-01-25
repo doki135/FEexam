@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Gallery Uploader</title>
+  <style>
+    .preview {
+      max-width: 200px;
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+</head>
+<body>
+<div class="container">
+  <h1>Gallery Uploader</h1>
+  <form>
+    <div class="form-group">
+      <label>Name:</label>
+      <input type="text" name="name" class="form-control" value="NAME" required="">
+    </div>
+    <div class="form-group">
+      <label>Description:</label>
+      <input type="text" name="description" class="form-control" value="DESCRIPTION" required="">
+    </div>
+    <div class="form-group">
+      <label>Photo:</label>
+      <input type="file" name="photo" class="form-control" readonly required="" accept="image/x-png,image/gif,image/jpeg">
+    </div>
+    <div class="form-group">
+      <label>Featured:</label>
+      <input type="checkbox" name="featured" class="form-control">
+    </div>
+    <button type="submit" class="btn btn-success save-btn">Save</button>
+  </form>
+  <br/>
+  <a href="index.html" class="btn btn-primary" role="button">Go to homepage</a>
+  <table class="table table-bordered data-table">
+    <thead>
+      <th>Name</th>
+      <th>Description</th>
+      <th>Preview</th>
+      <th>Featured</th>
+      <th width="200px">Action</th>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function() {
+      var gallery = JSON.parse(localStorage.getItem('gallery')) || [];
+      for (i = 0; i < gallery.length; ++i) {
+        var name = gallery[i].name
+        var description = gallery[i].description;
+        var featured = gallery[i].featured;
+        var file = gallery[i].file;
+        $(".data-table tbody").append("<tr><td>"+name+"</td><td>"+description+"</td><td><image src="+file+" class='preview'></td><td>"+featured+"</td><td><button class='btn btn-info btn-xs btn-edit'>Edit</button><button class='btn btn-danger btn-xs btn-delete'>Delete</button></td></tr>");
+      }
+    });
+
+    $("form").submit(function(e){
+      e.preventDefault();
+      var gallery = JSON.parse(localStorage.getItem('gallery')) || [];
+      var reader = new FileReader();
+      var name = $("input[name='name']").val();
+      var description = $("input[name='description']").val();
+      var featured = $("input[name='featured']").prop('checked');
+      var photo = $("input[name='photo']")[0].files[0];
+      reader.onload = function() {
+        var file = reader.result;
+        const json = {
+          name: name,
+          description: description,
+          featured: featured,
+          file: file
+        };
+        gallery.push(json);
+          localStorage.setItem('gallery', JSON.stringify(gallery));
+        $(".data-table tbody").append("<tr data-name='"+name+"' data-description='"+description+"' data-file='"+file+"' data-featured='"+featured+"'><td>"+name+"</td><td>"+description+"</td><td><image src="+file+" class='preview'></td><td>"+featured+"</td><td><button class='btn btn-info btn-xs btn-edit'>Edit</button><button class='btn btn-danger btn-xs btn-delete'>Delete</button></td></tr>");
+      }
+      reader.readAsDataURL(photo);
+    });
+
+    $("body").on("click", ".btn-delete", function(){
+      var gallery = JSON.parse(localStorage.getItem('gallery')) || [];
+      var index = $(this).parents("tr").index();
+      $(this).parents("tr").remove();
+      gallery.splice(index, 1);
+      localStorage.setItem('gallery', JSON.stringify(gallery));
+    });
+
+    $("body").on("click", ".btn-edit", function(){
+      var gallery = JSON.parse(localStorage.getItem('gallery')) || [];
+      var index = $(this).parents("tr").index();
+      var name = gallery[index].name;
+      var description = gallery[index].description;
+      var featured = gallery[index].featured;
+      $(this).parents("tr").find("td:eq(0)").html('<input name="edit_name" value="'+name+'">');
+      $(this).parents("tr").find("td:eq(1)").html('<input name="edit_description" value="'+description+'">');
+      $(this).parents("tr").find("td:eq(2)").html('<input type="file" name="edit_photo">');
+      $(this).parents("tr").find("td:eq(3)").html('<input type="checkbox" name="edit_featured" value="'+featured+'">');
+      $(this).parents("tr").find("td:eq(4)").prepend("<button class='btn btn-info btn-xs btn-update'>Update</button><button class='btn btn-warning btn-xs btn-cancel'>Cancel</button>")
+      $(this).hide();
+    });
+
+    $("body").on("click", ".btn-cancel", function(){
+      var gallery = JSON.parse(localStorage.getItem('gallery')) || [];
+      var index = $(this).parents("tr").index();
+      var name = gallery[index].name;
+      var file = gallery[index].file;
+      var description = gallery[index].description;
+      var featured = gallery[index].featured;
+      $(this).parents("tr").find("td:eq(0)").text(name);
+      $(this).parents("tr").find("td:eq(1)").text(description);
+      $(this).parents("tr").find("td:eq(2)").html( "<image src='"+file+"' class='preview'>" );
+      $(this).parents("tr").find("td:eq(3)").text(featured);
+      $(this).parents("tr").find(".btn-edit").show();
+      $(this).parents("tr").find(".btn-update").remove();
+      $(this).parents("tr").find(".btn-cancel").remove();
+    });
+    $("body").on("click", ".btn-update", function(){
+      var gallery = JSON.parse(localStorage.getItem('gallery')) || [];
+      var index = $(this).parents("tr").index();
+      var parent = $(this).parents("tr");
+      var file = gallery[index].file;
+      var name = $(this).parents("tr").find("input[name='edit_name']").val();
+      var description = $(this).parents("tr").find("input[name='edit_description']").val();
+      var featured = $(this).parents("tr").find("input[name='edit_featured']").prop('checked');
+      var photo = $(this).parents("tr").find("input[name='edit_photo']")[0].files[0];
+      if(photo) {
+        var reader = new FileReader();
+        reader.onload = function() {
+          file = reader.result;
+          const json = {
+            name: name,
+            description: description,
+            featured: featured,
+            file: file
+          };
+          gallery[index] = json;
+          localStorage.setItem('gallery', JSON.stringify(gallery));
+          parent.find("td:eq(2)").html( "<image src='"+file+"' class='preview'>" );
+          parent.find("td:eq(0)").text(name);
+          parent.find("td:eq(1)").text(description);
+          parent.find("td:eq(3)").text(featured);
+          parent.attr('data-name', name);
+          parent.attr('data-email', description);
+          parent.find(".btn-edit").show();
+          parent.find(".btn-cancel").remove();
+          parent.find(".btn-update").remove();
+        }
+        reader.readAsDataURL(photo);
+      } else {
+        const json = {
+          name: name,
+          description: description,
+          featured: featured,
+          file: file
+        };
+        gallery[index] = json;
+        localStorage.setItem('gallery', JSON.stringify(gallery));
+        parent.find("td:eq(2)").html( "<image src='"+file+"' class='preview'>" );
+        parent.find("td:eq(0)").text(name);
+        parent.find("td:eq(1)").text(description);
+        parent.find("td:eq(3)").text(featured);
+        parent.attr('data-name', name);
+        parent.attr('data-email', description);
+        parent.find(".btn-edit").show();
+        parent.find(".btn-cancel").remove();
+        parent.find(".btn-update").remove();
+      }
+    });
+</script>
+</body>
+</html>
